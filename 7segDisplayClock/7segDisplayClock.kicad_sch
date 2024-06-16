@@ -5315,7 +5315,7 @@
 			)
 		)
 	)
-	(global_label "DP2"
+	(global_label "DP4"
 		(shape input)
 		(at 256.54 107.95 0)
 		(fields_autoplaced yes)
@@ -5381,7 +5381,7 @@
 			)
 		)
 	)
-	(global_label "DP4"
+	(global_label "DP2"
 		(shape input)
 		(at 226.06 107.95 180)
 		(fields_autoplaced yes)
@@ -5601,7 +5601,7 @@
 			)
 		)
 	)
-	(global_label "DP3"
+	(global_label "DP1"
 		(shape input)
 		(at 226.06 105.41 180)
 		(fields_autoplaced yes)
@@ -5623,7 +5623,7 @@
 			)
 		)
 	)
-	(global_label "DP1"
+	(global_label "DP3"
 		(shape input)
 		(at 256.54 105.41 0)
 		(fields_autoplaced yes)
