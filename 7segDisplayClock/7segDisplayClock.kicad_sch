@@ -5293,7 +5293,7 @@
 			)
 		)
 	)
-	(global_label "SCL"
+	(global_label "SDA"
 		(shape input)
 		(at 195.58 115.57 180)
 		(fields_autoplaced yes)
@@ -5305,7 +5305,7 @@
 		)
 		(uuid "3e153104-238e-4af8-97d3-c9efb50073d1")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 189.0872 115.57 0)
+			(at 189.0267 115.57 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5491,7 +5491,7 @@
 			)
 		)
 	)
-	(global_label "SDA"
+	(global_label "SCL"
 		(shape input)
 		(at 195.58 113.03 180)
 		(fields_autoplaced yes)
@@ -5503,7 +5503,7 @@
 		)
 		(uuid "7f0cde7e-1d7c-40fb-ba89-5c37c22933fc")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 189.0267 113.03 0)
+			(at 189.0872 113.03 0)
 			(effects
 				(font
 					(size 1.27 1.27)
