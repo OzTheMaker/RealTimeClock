@@ -206,6 +206,7 @@ DISPLAY_D:
     RETLW 0
      
 ROUTATE:
+    BCF STATUS, STATUS_C_POSITION
     MOVWF COPY
     RRF COPY, F
     RRF COPY, F
@@ -258,7 +259,7 @@ START:
     MOVWF TIMER_FLAG	    ;Sets DELAY_FLAG to 240
     CLRF TIMER_COUNTER      ;Clean TIMER_COUNTER
     CLRF TMR0		    ;Clean TMR0
-    MOVLW 0x08              ;Load 8 to all the displays
+    MOVLW 0x00              ;Load 0 to all the displays
     MOVWF DATA_A
     MOVWF DATA_B
     MOVWF DATA_C
@@ -299,6 +300,16 @@ READ_MIN:
     MOVF I2C_DATA, W
     MOVWF MIN
     CALL I2C_STOP
+LOAD_MIN:		    ;Load minutes in displays DC
+    MOVF MIN, W
+    ANDLW 0x0F
+    MOVWF DATA_D
+    MOVF MIN, W
+    ANDLW 0xF0
+    CALL ROUTATE
+    MOVF COPY, W
+    MOVWF DATA_C
+    BCF DATA_C, 0x03
 READ_HOUR:
     CALL I2C_START
     MOVLW W_ADDRESS
@@ -313,21 +324,12 @@ READ_HOUR:
     MOVF I2C_DATA, W
     MOVWF HOUR
     CALL I2C_STOP    
-LOAD_MIN:		    ;Load minutes in displays DC
-    MOVF MIN, W
-    ANDLW 0x0F
-    MOVWF DATA_D
-    MOVF MIN, W
-    ANDLW 0xF0
-    CALL ROUTATE
-    MOVF COPY, W
-    MOVWF DATA_C
 LOAD_HOUR:		   ;Load hour in displays BA
     MOVF HOUR, W
     ANDLW 0x0F
     MOVWF DATA_B
     MOVF HOUR, W
-    ANDLW 0x10
+    ANDLW 0x30
     CALL ROUTATE
     MOVF COPY, W
     MOVWF DATA_A    
