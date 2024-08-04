@@ -219,7 +219,7 @@ RESET_COPY:
     MOVWF COPY
     RETLW 0
     
-;Timer configuration
+;Timer configuration -> Program START-------------------------------------------
 TIMER_INIT:
     CALL DELAY  ;Stabilizes the oscillator
     MOVLW 0xDF  ;Set TMR0 to timer mode
@@ -246,28 +246,6 @@ GPIO_INIT:
     CLRF PORTC
     CLRF PORT
     
-;Start clock clearing CH bit and set seconds to 0 and set year------------------   
-CLOCK_INIT:
-    CALL I2C_START
-    MOVLW W_ADDRESS
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x00
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x00
-    CALL I2C_WRITE_BYTE
-    CALL I2C_STOP
-    CALL DELAY
-    CALL I2C_START
-    MOVLW W_ADDRESS
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x07				    ;Write over year address
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x18				    ;2024
-    CALL I2C_WRITE_BYTE
-    CALL I2C_STOP
-    
-    
-
 ;Test all displays for three seconds
 
 START:    
@@ -302,54 +280,6 @@ TEST_LOOP:
 DISPLAY_OFF:
     CLRF PORTB
 
-;Read and load time values
-READ_MIN:
-    CALL I2C_START
-    MOVLW W_ADDRESS
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x01
-    CALL I2C_WRITE_BYTE
-    CALL I2C_START
-    MOVLW R_ADDRESS
-    CALL I2C_WRITE_BYTE
-    CALL I2C_READ_BYTE
-    CALL I2C_NACK
-    MOVF I2C_DATA, W
-    MOVWF MIN
-    CALL I2C_STOP
-LOAD_MIN:		    ;Load minutes in displays DC
-    MOVF MIN, W
-    ANDLW 0x0F
-    MOVWF DATA_D
-    MOVF MIN, W
-    ANDLW 0x70
-    CALL ROUTATE
-    MOVF COPY, W
-    MOVWF DATA_C
-READ_HOUR:
-    CALL I2C_START
-    MOVLW W_ADDRESS
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x02
-    CALL I2C_WRITE_BYTE
-    CALL I2C_START
-    MOVLW R_ADDRESS
-    CALL I2C_WRITE_BYTE
-    CALL I2C_READ_BYTE
-    CALL I2C_NACK
-    MOVF I2C_DATA, W
-    MOVWF HOUR
-    CALL I2C_STOP    
-LOAD_HOUR:		   ;Load hour in displays BA
-    MOVF HOUR, W
-    ANDLW 0x0F
-    MOVWF DATA_B
-    MOVF HOUR, W
-    ANDLW 0x30
-    CALL ROUTATE
-    MOVF COPY, W
-    MOVWF DATA_A    
-
 CLRF TIMER_COUNTER      ;Clean TIMER_COUNTER
 CLRF TMR0		;Clean TMR0    
 
@@ -375,55 +305,6 @@ DISTIME_LOOP:
     GOTO DISPLAY_TIME			;ELSE continue the loop
    
 
-READ_DATE:
-    CLRF PORTB				;Turn off display
-    CLRF TMR0
-    CLRF TIMER_COUNTER
-    CALL I2C_START
-    MOVLW W_ADDRESS
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x04
-    CALL I2C_WRITE_BYTE
-    CALL I2C_START
-    MOVLW R_ADDRESS
-    CALL I2C_WRITE_BYTE
-    CALL I2C_READ_BYTE
-    CALL I2C_NACK
-    MOVF I2C_DATA, W
-    MOVWF DATE
-    CALL I2C_STOP
-LOAD_DATE:    
-    MOVF DATE, W
-    ANDLW 0x0F
-    MOVWF DATA_B
-    MOVF DATE, W
-    ANDLW 0x30
-    CALL ROUTATE
-    MOVF COPY, W
-    MOVWF DATA_A
-READ_MONTH:
-    CALL I2C_START
-    MOVLW W_ADDRESS
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x05
-    CALL I2C_WRITE_BYTE
-    CALL I2C_START
-    MOVLW R_ADDRESS
-    CALL I2C_WRITE_BYTE
-    CALL I2C_READ_BYTE
-    CALL I2C_NACK
-    MOVF I2C_DATA, W
-    MOVWF MONTH
-    CALL I2C_STOP
-LOAD_MONTH:
-    MOVF MONTH, W
-    ANDLW 0x0F
-    MOVWF DATA_D
-    MOVF MONTH, W
-    ANDLW 0x10
-    CALL ROUTATE
-    MOVF COPY, W
-    MOVWF DATA_C
 DISPLAY_DATE:
     CALL DISPLAY_A
     CALL DISPLAY_B
@@ -525,42 +406,6 @@ UPDATE_MD:
     BTFSC PORTB, SW1
     GOTO SEND_TIME
 
-SEND_TIME:
-    MOVF DATA_D, W			
-    ADDWF DATA_C, W			;Add DATA_D+DATA_C
-    MOVWF COPY
-    CALL I2C_START
-    MOVLW W_ADDRESS
-    CALL I2C_WRITE_BYTE
-    MOVLW 0X01				;Writes over minute address
-    CALL I2C_WRITE_BYTE
-    MOVF COPY, W			
-    CALL I2C_WRITE_BYTE			;Writes minute units + decades
-    MOVF DATA_B, W
-    ADDWF DATA_A, W
-    MOVWF COPY
-    CALL I2C_WRITE_BYTE			;Writes hour units + decades
-    CALL I2C_STOP
- 
-    
-SEND_DATE:
-    MOVF DATA_D, W			
-    ADDWF DATA_C, W			;Add DATA_D+DATA_C
-    MOVWF COPY
-    CALL I2C_START
-    MOVLW W_ADDRESS
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x04				;Writes over date address
-    CALL I2C_WRITE_BYTE
-    MOVF COPY, W			
-    CALL I2C_WRITE_BYTE			;Writes minute units + decades
-    MOVF DATA_B, W
-    ADDWF DATA_A, W
-    MOVWF COPY
-    CALL I2C_WRITE_BYTE			;Writes hour units + decades
-    CALL I2C_STOP
-    GOTO TIMER_INIT
-    
 INC_COPY:
     INCF COPY
     MOVLW 0X09
