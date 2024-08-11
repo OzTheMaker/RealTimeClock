@@ -40,10 +40,10 @@ COUNTER1 EQU 0x11
 COUNTER2 EQU 0x12 
 MIN	EQU 0x13
 HOUR	EQU 0x14
-DAY	EQU 0x15
-MONTH	EQU 0x16
-YEAR	EQU 0x17
-DATE	EQU 0X18	
+DAY	EQU 0x07	    ;Sunday
+DATE	EQU 0X11	    ;11	
+MONTH	EQU 0x08	    ;August
+YEAR	EQU 0x24	    ;2024
 SDA EQU 0x04
 SCL EQU 0x05
 SW1 EQU 0x03
@@ -68,7 +68,7 @@ CONFIG IOSCFS = 0
 ;Program memory reset vector
 PSECT resetOrigin, class=CODE, delta=2
  
-GOTO TIMER_INIT
+GOTO START
  
 I2C_START:
     CALL SCL_HIGH
@@ -220,14 +220,9 @@ RESET_COPY:
     RETLW 0
     
 ;Timer configuration
-TIMER_INIT:
+START:
     CALL DELAY  ;Stabilizes the oscillator
-    MOVLW 0xDF  ;Set TMR0 to timer mode
-    OPTION
-    CLRWDT
-    MOVLW 0xD7  ;Switch prescaler to TMR0 and set its value to 256
-    OPTION
-    
+       
 ;Setting up MCU pins to work as GPIO    
 GPIO_INIT:
     MOVLW ~(1 << CM1CON0_C1ON_POSITION)
@@ -246,335 +241,22 @@ GPIO_INIT:
     CLRF PORTC
     CLRF PORT
     
-;Start clock clearing CH bit and set seconds to 0 and set year------------------   
-CLOCK_INIT:
+;Change day, date, month and year   
+DATE_CHANGE:
     CALL I2C_START
     MOVLW W_ADDRESS
     CALL I2C_WRITE_BYTE
-    MOVLW 0x00
+    MOVLW 0x03
     CALL I2C_WRITE_BYTE
-    MOVLW 0x00
+    MOVLW DAY
+    CALL I2C_WRITE_BYTE
+    MOVLW DATE
+    CALL I2C_WRITE_BYTE
+    MOVLW MONTH
+    CALL I2C_WRITE_BYTE
+    MOVLW YEAR				    
     CALL I2C_WRITE_BYTE
     CALL I2C_STOP
-    CALL DELAY
-    CALL I2C_START
-    MOVLW W_ADDRESS
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x07				    ;Write over year address
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x18				    ;2024
-    CALL I2C_WRITE_BYTE
-    CALL I2C_STOP
-    
-    
-
-;Test all displays for three seconds
-
-START:    
-    MOVLW 0xC8
-    MOVWF TIMER_FLAG	    ;Sets DELAY_FLAG to 240
-    CLRF TIMER_COUNTER      ;Clean TIMER_COUNTER
-    CLRF TMR0		    ;Clean TMR0
-    MOVLW 0x00              ;Load 0 to all the displays
-    MOVWF DATA_A
-    MOVWF DATA_B
-    MOVWF DATA_C
-    MOVWF DATA_D
-TEST_DISPLAY:
-    CALL DISPLAY_A
-    CALL DISPLAY_B
-    CALL DISPLAY_C
-    CALL DISPLAY_D
-    MOVF TMR0, W
-    SUBWF TIMER_FLAG, W			;TIMER_FLAG - TMR0
-    BTFSS STATUS, STATUS_C_POSITION     ;IF TMR0 > DELAY_FLAG
-    GOTO TEST_LOOP			;THEN increase TIMER_COUNTER 
-    GOTO TEST_DISPLAY			;ELSE continue the loop
-TEST_LOOP:
-    INCF TIMER_COUNTER
-    MOVLW 0x10 
-    SUBWF TIMER_COUNTER, W		;TIMER_COUNTER - 
-    BTFSC STATUS, STATUS_Z_POSITION     ;IF TIMER_COUNTER reaches 45
-    GOTO DISPLAY_OFF 			;THEN exit the loop
-    CLRF TMR0
-    GOTO TEST_DISPLAY			;ELSE continue the loop
-
-DISPLAY_OFF:
-    CLRF PORTB
-
-;Read and load time values
-READ_MIN:
-    CALL I2C_START
-    MOVLW W_ADDRESS
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x01
-    CALL I2C_WRITE_BYTE
-    CALL I2C_START
-    MOVLW R_ADDRESS
-    CALL I2C_WRITE_BYTE
-    CALL I2C_READ_BYTE
-    CALL I2C_NACK
-    MOVF I2C_DATA, W
-    MOVWF MIN
-    CALL I2C_STOP
-LOAD_MIN:		    ;Load minutes in displays DC
-    MOVF MIN, W
-    ANDLW 0x0F
-    MOVWF DATA_D
-    MOVF MIN, W
-    ANDLW 0x70
-    CALL ROUTATE
-    MOVF COPY, W
-    MOVWF DATA_C
-READ_HOUR:
-    CALL I2C_START
-    MOVLW W_ADDRESS
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x02
-    CALL I2C_WRITE_BYTE
-    CALL I2C_START
-    MOVLW R_ADDRESS
-    CALL I2C_WRITE_BYTE
-    CALL I2C_READ_BYTE
-    CALL I2C_NACK
-    MOVF I2C_DATA, W
-    MOVWF HOUR
-    CALL I2C_STOP    
-LOAD_HOUR:		   ;Load hour in displays BA
-    MOVF HOUR, W
-    ANDLW 0x0F
-    MOVWF DATA_B
-    MOVF HOUR, W
-    ANDLW 0x30
-    CALL ROUTATE
-    MOVF COPY, W
-    MOVWF DATA_A    
-
-CLRF TIMER_COUNTER      ;Clean TIMER_COUNTER
-CLRF TMR0		;Clean TMR0    
-
-DISPLAY_TIME:
-    CALL DISPLAY_A
-    CALL DISPLAY_B
-    CALL DISPLAY_C
-    CALL DISPLAY_D
-    BTFSC PORTB, SW2                    ;Polling SW2 
-    GOTO READ_DATE			;IF pushed display date
-    MOVF TMR0, W
-    SUBWF TIMER_FLAG, W			;TIMER_FLAG - TMR0
-    BTFSS STATUS, STATUS_C_POSITION     ;IF TMR0 > DELAY_FLAG
-    GOTO DISTIME_LOOP			;THEN increase TIMER_COUNTER 
-    GOTO DISPLAY_TIME			;ELSE continue the loop
-DISTIME_LOOP:
-    INCF TIMER_COUNTER
-    MOVLW 0x10 
-    SUBWF TIMER_COUNTER, W		;TIMER_COUNTER - 45
-    BTFSC STATUS, STATUS_Z_POSITION     ;IF TIMER_COUNTER reaches 45
-    GOTO GO_SLEEP 			;THEN exit the loop
-    CLRF TMR0
-    GOTO DISPLAY_TIME			;ELSE continue the loop
-   
-
-READ_DATE:
-    CLRF PORTB				;Turn off display
-    CLRF TMR0
-    CLRF TIMER_COUNTER
-    CALL I2C_START
-    MOVLW W_ADDRESS
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x04
-    CALL I2C_WRITE_BYTE
-    CALL I2C_START
-    MOVLW R_ADDRESS
-    CALL I2C_WRITE_BYTE
-    CALL I2C_READ_BYTE
-    CALL I2C_NACK
-    MOVF I2C_DATA, W
-    MOVWF DATE
-    CALL I2C_STOP
-LOAD_DATE:    
-    MOVF DATE, W
-    ANDLW 0x0F
-    MOVWF DATA_B
-    MOVF DATE, W
-    ANDLW 0x30
-    CALL ROUTATE
-    MOVF COPY, W
-    MOVWF DATA_A
-READ_MONTH:
-    CALL I2C_START
-    MOVLW W_ADDRESS
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x05
-    CALL I2C_WRITE_BYTE
-    CALL I2C_START
-    MOVLW R_ADDRESS
-    CALL I2C_WRITE_BYTE
-    CALL I2C_READ_BYTE
-    CALL I2C_NACK
-    MOVF I2C_DATA, W
-    MOVWF MONTH
-    CALL I2C_STOP
-LOAD_MONTH:
-    MOVF MONTH, W
-    ANDLW 0x0F
-    MOVWF DATA_D
-    MOVF MONTH, W
-    ANDLW 0x10
-    CALL ROUTATE
-    MOVF COPY, W
-    MOVWF DATA_C
-DISPLAY_DATE:
-    CALL DISPLAY_A
-    CALL DISPLAY_B
-    CALL DISPLAY_C
-    CALL DISPLAY_D  
-    BTFSC PORTB, SW2                    ;Polling SW2 
-    GOTO SW2_ROUTINE			;IF pushed goto SW2_ROUTINE
-    MOVF TMR0, W
-    SUBWF TIMER_FLAG, W			;TIMER_FLAG - TMR0
-    BTFSS STATUS, STATUS_C_POSITION     ;IF TMR0 > DELAY_FLAG
-    GOTO DISDATE_LOOP			;THEN increase TIMER_COUNTER 
-    GOTO DISPLAY_DATE			;ELSE continue the loop
-DISDATE_LOOP:
-    INCF TIMER_COUNTER
-    MOVLW 0x10 
-    SUBWF TIMER_COUNTER, W		;TIMER_COUNTER - 45
-    BTFSC STATUS, STATUS_Z_POSITION     ;IF TIMER_COUNTER reaches 45 (2sec)
-    GOTO GO_SLEEP 			;THEN exit the loop
-    GOTO DISPLAY_DATE			;ELSE continue the loop   
-    
-SW2_ROUTINE:
-    CLRF TIMER_COUNTER
-    CLRF TMR0
-SW2_LOOP:
-    BTFSS PORTB, SW2			;IF SW2 is NOT pressed
-    GOTO READ_DATE			;THEN go back to READ_DATE
-    CALL DISPLAY_A
-    CALL DISPLAY_B
-    CALL DISPLAY_C
-    CALL DISPLAY_D
-    MOVF TMR0, W
-    SUBWF TIMER_FLAG, W			;TIMER_FLAG - TMR0
-    BTFSS STATUS, STATUS_C_POSITION     ;IF TMR0 > DELAY_FLAG
-    GOTO SW2_COUNTER			;THEN increase TIMER_COUNTER
-    GOTO SW2_LOOP			;ELSE continue the loop
-SW2_COUNTER:
-    INCF TIMER_COUNTER
-    MOVLW 0x4B
-    SUBWF TIMER_COUNTER, W		;TIMER_COUNTER - 75
-    BTFSC STATUS, STATUS_Z_POSITION     ;IF TIMER_COUNTER reaches 75 (5seg)
-    GOTO GO_SLEEP 			;THEN exit the loop
-    GOTO SW2_LOOP			;ELSE continue the loop
-  
-    
-GO_SLEEP:
-    GOTO START   
-    
-UPDATE_TIME:
-    CLRF TIMER_COUNTER
-    CLRF TMR0
-    CLRF 0X00
-    CLRF COPY
-    CLRF DATA_A
-    CLRF DATA_B
-    CLRF DATA_C
-    CLRF DATA_C
-    
-UPDATE_MU:
-    ;This section is for minutes units
-    CALL DISPLAY_A
-    CALL DISPLAY_B
-    CALL DISPLAY_C
-    MOVF COPY, W
-    MOVWF DATA_D
-    ;BTFSC BLINK, 0x00
-    CALL DISPLAY_D
-    BTFSC PORTB, SW2			;IF SW2 is pressed
-    GOTO INC_COPY			;THEN increase copy
-    BTFSC PORTB, SW1
-    GOTO UPDATE_MD
-    MOVF TMR0, W
-    SUBWF TIMER_FLAG, W			;TIMER_FLAG - TMR0
-    BTFSS STATUS, STATUS_C_POSITION     ;IF TMR0 > DELAY_FLAG
-    GOTO BLINK_UNITS				;THEN increase TIMER_COUNTER 
-    GOTO UPDATE_MU			;ELSE continue the loop
-BLINK_UNITS:
-    INCF TIMER_COUNTER
-    MOVLW 0x07
-    SUBWF TIMER_COUNTER, W		;TIMER_COUNTER - 7
-    BTFSC STATUS, STATUS_Z_POSITION     ;IF TIMER_COUNTER reaches 7 (500ms)
-    ;XORWF BLINK
-    BTFSS PORTB, SW1			;IF SW1 is pressed
-    GOTO SW2_LOOP			;ELSE continue the loop
-    
-CLRF COPY
-CLRF TMR0    
-    
-UPDATE_MD:
-    ;This section is for minutes decades
-    CALL DISPLAY_A
-    CALL DISPLAY_B
-    MOVF COPY, W
-    MOVWF DATA_C
-    ;BTFSC BLINK, 0x00
-    CALL DISPLAY_C
-    CALL DISPLAY_D
-    BTFSC PORTB, SW2			;IF SW2 is pressed
-    GOTO INC_COPY			;THEN increase copy
-    BTFSC PORTB, SW1
-    GOTO SEND_TIME
-
-SEND_TIME:
-    MOVF DATA_D, W			
-    ADDWF DATA_C, W			;Add DATA_D+DATA_C
-    MOVWF COPY
-    CALL I2C_START
-    MOVLW W_ADDRESS
-    CALL I2C_WRITE_BYTE
-    MOVLW 0X01				;Writes over minute address
-    CALL I2C_WRITE_BYTE
-    MOVF COPY, W			
-    CALL I2C_WRITE_BYTE			;Writes minute units + decades
-    MOVF DATA_B, W
-    ADDWF DATA_A, W
-    MOVWF COPY
-    CALL I2C_WRITE_BYTE			;Writes hour units + decades
-    CALL I2C_STOP
- 
-    
-SEND_DATE:
-    MOVF DATA_D, W			
-    ADDWF DATA_C, W			;Add DATA_D+DATA_C
-    MOVWF COPY
-    CALL I2C_START
-    MOVLW W_ADDRESS
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x04				;Writes over date address
-    CALL I2C_WRITE_BYTE
-    MOVF COPY, W			
-    CALL I2C_WRITE_BYTE			;Writes minute units + decades
-    MOVF DATA_B, W
-    ADDWF DATA_A, W
-    MOVWF COPY
-    CALL I2C_WRITE_BYTE			;Writes hour units + decades
-    CALL I2C_STOP
-    GOTO TIMER_INIT
-    
-INC_COPY:
-    INCF COPY
-    MOVLW 0X09
-    SUBWF COPY, W			    ;COPY - 9
-    BTFSS STATUS, STATUS_C_POSITION	    ;IF COPY is higher than 9 
-    CALL RESET_COPY			    ;THEN reset copy
-    MOVLW 0xFF				    ;ELSE continue
-    MOVWF COUNTER1
-    MOVLW 0x1A
-    MOVWF COUNTER2
-    CALL DELAY_LOOP			    ;Debounce delay 20ms
-    RETLW 0				    
-    
+SLEEP   
 END
     
-    
-
