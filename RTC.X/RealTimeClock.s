@@ -473,7 +473,7 @@ DISPLAY_DATE:
     CALL DISPLAY_C
     CALL DISPLAY_D  
     BTFSC PORTB, SW2                    ;Polling SW2 
-    GOTO $+0x0B				;IF pushed exit loop
+    GOTO $+0x0C				;IF pushed exit loop
     MOVF TMR0, W
     SUBWF TIMER_FLAG, W			;TIMER_FLAG - TMR0
     BTFSS STATUS, STATUS_C_POSITION     ;IF TMR0 > DELAY_FLAG
@@ -500,14 +500,14 @@ POLLING_SW2:
     SUBWF TIMER_FLAG, W			;TIMER_FLAG - TMR0
     BTFSS STATUS, STATUS_C_POSITION     ;IF TMR0 > DELAY_FLAG
     GOTO SW2_LOOP			;THEN increase TIMER_COUNTER 
-    GOTO DISPLAY_DATE			;ELSE continue the loop
+    GOTO POLLING_SW2			;ELSE continue the loop
 SW2_LOOP:
     INCF TIMER_COUNTER
     MOVLW 0x2D 
     SUBWF TIMER_COUNTER, W		;TIMER_COUNTER - 45
     BTFSC STATUS, STATUS_Z_POSITION     ;IF TIMER_COUNTER reaches 45 (2sec)
-    GOTO $+2				;THEN goto exit loop
-    GOTO DISPLAY_DATE			;ELSE continue the loop
+    GOTO $+2				;THEN exit loop
+    GOTO POLLING_SW2			;ELSE continue the loop
     
 CLRF DATA_A
 CLRF DATA_B
@@ -522,9 +522,9 @@ INC_MIN_UNITS:
     CALL DISPLAY_C
     BTFSC COPY, 0x00			;IF COPY BIT0 is 1
     CALL DISPLAY_D			;THEN display D value
-    BTFSC PORTB, SW1                    ;Polling SW2 
+    BTFSC PORTB, SW2                    ;Polling SW2 
     CALL INC_DATA_D			;IF SW2 is pressed increase DATA_D
-    BTFSC PORTB, SW2			;Polling SW1
+    BTFSC PORTB, SW1			;Polling SW1
     GOTO $+0x0D				;IF SW1 is pressed exit loop
     MOVF TMR0, W
     SUBWF TIMER_FLAG, W			;TIMER_FLAG - TMR0
@@ -553,9 +553,9 @@ INC_MIN_DEC:
     BTFSC COPY, 0x00			;IF COPY BIT0 is 1
     CALL DISPLAY_C			;THEN display C value
     CALL DISPLAY_D			
-    BTFSC PORTB, SW1                    ;Polling SW2 
+    BTFSC PORTB, SW2                    ;Polling SW2 
     CALL INC_DATA_C			;IF SW2 is pressed increase DATA_C
-    BTFSC PORTB, SW2			;Polling SW1
+    BTFSC PORTB, SW1			;Polling SW1
     GOTO $+0x0D				;IF SW1 is pressed exit loop
     MOVF TMR0, W
     SUBWF TIMER_FLAG, W			;TIMER_FLAG - TMR0
@@ -584,9 +584,9 @@ INC_HOUR_UNITS:
     CALL DISPLAY_B			;THEN display B value
     CALL DISPLAY_C			
     CALL DISPLAY_D			
-    BTFSC PORTB, SW1                    ;Polling SW2 
+    BTFSC PORTB, SW2                    ;Polling SW2 
     CALL INC_DATA_B			;IF SW2 is pressed increase DATA_B
-    BTFSC PORTB, SW2			;Polling SW1
+    BTFSC PORTB, SW1			;Polling SW1
     GOTO $+0x0D				;IF SW1 is pressed exit loop
     MOVF TMR0, W
     SUBWF TIMER_FLAG, W			;TIMER_FLAG - TMR0
@@ -615,9 +615,9 @@ INC_HOUR_DEC:
     CALL DISPLAY_B			
     CALL DISPLAY_C			
     CALL DISPLAY_D			
-    BTFSC PORTB, SW1                    ;Polling SW2 
+    BTFSC PORTB, SW2                    ;Polling SW2 
     CALL INC_DATA_A			;IF SW2 is pressed increase DATA_A
-    BTFSC PORTB, SW2			;Polling SW1
+    BTFSC PORTB, SW1			;Polling SW1
     GOTO $+0x0D				;IF SW1 is pressed exit loop
     MOVF TMR0, W
     SUBWF TIMER_FLAG, W			;TIMER_FLAG - TMR0
@@ -660,7 +660,8 @@ SEND_TIME:
     CALL I2C_WRITE_BYTE
     MOVLW 0X01				
     CALL I2C_WRITE_BYTE			;Writes over minute address
-    
+    MOVF COPY, W
+    CALL I2C_WRITE_BYTE
     RLF DATA_A
     RLF DATA_A
     RLF DATA_A
@@ -672,8 +673,7 @@ SEND_TIME:
     ANDLW 0x0F
     MOVWF DATA_B
     MOVF DATA_A, W
-    ADDWF DATA_B, W
-    MOVWF COPY
+    ADDWF DATA_B, W			;DATA_A + DATA_B -> W
     CALL I2C_WRITE_BYTE			;Writes over hour address
     CALL I2C_STOP
  
