@@ -677,7 +677,7 @@ SEND_TIME:
     CALL I2C_WRITE_BYTE			;Writes over hour address
     CALL I2C_STOP
  
-    GOTO CLOCK_INIT
+    GOTO START
     
 END
     
