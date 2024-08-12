@@ -265,6 +265,7 @@ INC_DATA_D:
     RETLW 0			     ;ELSE return
     
 GO_SLEEP:
+    MOVF PORTB, W
     SLEEP
     
 ;Timer configuration
