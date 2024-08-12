@@ -273,7 +273,7 @@ TIMER_INIT:
     MOVLW 0xDF  ;Set TMR0 to timer mode
     OPTION
     CLRWDT
-    MOVLW 0xD7  ;Switch prescaler to TMR0 and set its value to 256
+    MOVLW 0x57  ;Switch prescaler to TMR0, set its value to 256 and wake on pin change enable
     OPTION
     
 ;Setting up MCU pins to work as GPIO    
@@ -295,16 +295,16 @@ GPIO_INIT:
     CLRF PORT
     
 ;Start clock clearing CH bit and set seconds to 0 and set year------------------   
-CLOCK_INIT:
-    CALL I2C_START
-    MOVLW W_ADDRESS
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x00
-    CALL I2C_WRITE_BYTE
-    MOVLW 0x00
-    CALL I2C_WRITE_BYTE
-    CALL I2C_STOP
-    CALL DELAY  
+;CLOCK_INIT:
+ ;   CALL I2C_START
+ ;   MOVLW W_ADDRESS
+ ;   CALL I2C_WRITE_BYTE
+ ;   MOVLW 0x00
+ ;   CALL I2C_WRITE_BYTE
+ ;   MOVLW 0x00
+ ;   CALL I2C_WRITE_BYTE
+ ;   CALL I2C_STOP
+ ;   CALL DELAY  
     
 
 ;Test all displays for three seconds
