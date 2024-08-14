@@ -525,7 +525,7 @@ INC_MIN_UNITS:
     CALL DISPLAY_D			;THEN display D value
     BTFSC PORTB, SW2                    ;Polling SW2 
     CALL INC_DATA_D			;IF SW2 is pressed increase DATA_D
-    BTFSC PORTB, SW1			;Polling SW1
+    BTFSS PORTB, SW1			;Polling SW1
     GOTO $+0x0D				;IF SW1 is pressed exit loop
     MOVF TMR0, W
     SUBWF TIMER_FLAG, W			;TIMER_FLAG - TMR0
@@ -556,7 +556,7 @@ INC_MIN_DEC:
     CALL DISPLAY_D			
     BTFSC PORTB, SW2                    ;Polling SW2 
     CALL INC_DATA_C			;IF SW2 is pressed increase DATA_C
-    BTFSC PORTB, SW1			;Polling SW1
+    BTFSS PORTB, SW1			;Polling SW1
     GOTO $+0x0D				;IF SW1 is pressed exit loop
     MOVF TMR0, W
     SUBWF TIMER_FLAG, W			;TIMER_FLAG - TMR0
@@ -587,7 +587,7 @@ INC_HOUR_UNITS:
     CALL DISPLAY_D			
     BTFSC PORTB, SW2                    ;Polling SW2 
     CALL INC_DATA_B			;IF SW2 is pressed increase DATA_B
-    BTFSC PORTB, SW1			;Polling SW1
+    BTFSS PORTB, SW1			;Polling SW1
     GOTO $+0x0D				;IF SW1 is pressed exit loop
     MOVF TMR0, W
     SUBWF TIMER_FLAG, W			;TIMER_FLAG - TMR0
@@ -618,7 +618,7 @@ INC_HOUR_DEC:
     CALL DISPLAY_D			
     BTFSC PORTB, SW2                    ;Polling SW2 
     CALL INC_DATA_A			;IF SW2 is pressed increase DATA_A
-    BTFSC PORTB, SW1			;Polling SW1
+    BTFSS PORTB, SW1			;Polling SW1
     GOTO $+0x0D				;IF SW1 is pressed exit loop
     MOVF TMR0, W
     SUBWF TIMER_FLAG, W			;TIMER_FLAG - TMR0
