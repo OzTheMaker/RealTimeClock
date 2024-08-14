@@ -40,8 +40,8 @@ COUNTER1 EQU 0x11
 COUNTER2 EQU 0x12 
 MIN	EQU 0x13
 HOUR	EQU 0x14
-DAY	EQU 0x07	    ;Sunday
-DATE	EQU 0X11	    ;11	
+DAY	EQU 0x02	    ;Tuesday
+DATE	EQU 0X13	    ;13	
 MONTH	EQU 0x08	    ;August
 YEAR	EQU 0x24	    ;2024
 SDA EQU 0x04
@@ -68,7 +68,7 @@ CONFIG IOSCFS = 0
 ;Program memory reset vector
 PSECT resetOrigin, class=CODE, delta=2
  
-GOTO START
+GOTO TIMER_INIT
  
 I2C_START:
     CALL SCL_HIGH
@@ -172,56 +172,15 @@ DELAY_LOOP:
     DECFSZ COUNTER2, F
     GOTO DELAY_LOOP
     RETLW 0
-    
-DISPLAY_A:
-    MOVF DATA_A, W
-    MOVWF PORTC
-    BSF PORTB, PORTB_RB5_POSITION
-    CALL DELAY
-    BCF PORTB, PORTB_RB5_POSITION
-    RETLW 0
-    
-DISPLAY_B:    
-    MOVF DATA_B, W
-    MOVWF PORTC
-    BSF PORTB, PORTB_RB4_POSITION
-    CALL DELAY
-    BCF PORTB, PORTB_RB4_POSITION
-    RETLW 0
-    
-DISPLAY_C:
-    MOVF DATA_C, W
-    MOVWF PORTC
-    BSF PORTB, PORTB_RB0_POSITION
-    CALL DELAY
-    BCF PORTB, PORTB_RB0_POSITION
-    RETLW 0
-    
-DISPLAY_D:    
-    MOVF DATA_D, W
-    MOVWF PORTC
-    BSF PORTB, PORTB_RB1_POSITION
-    CALL DELAY
-    BCF PORTB, PORTB_RB1_POSITION
-    RETLW 0
-     
-ROUTATE:
-    BCF STATUS, STATUS_C_POSITION
-    MOVWF COPY
-    RRF COPY, F
-    RRF COPY, F
-    RRF COPY, F
-    RRF COPY, F
-    RETLW 0
-    
-RESET_COPY:
-    MOVLW 0x00
-    MOVWF COPY
-    RETLW 0
-    
+
 ;Timer configuration
-START:
+TIMER_INIT:
     CALL DELAY  ;Stabilizes the oscillator
+    MOVLW 0xDF  ;Set TMR0 to timer mode
+    OPTION
+    CLRWDT
+    MOVLW 0x57  ;Switch prescaler to TMR0, set its value to 256 and wake on pin change enable
+    OPTION
        
 ;Setting up MCU pins to work as GPIO    
 GPIO_INIT:
